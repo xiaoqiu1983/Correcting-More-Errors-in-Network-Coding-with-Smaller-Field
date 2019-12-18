@@ -1,0 +1,70 @@
+
+% The data in Fiugre 1 in the paper comes from this program
+clear;
+% y=T'*Y - T'*T"*(Z-Ly) where T'is the inverse of decoding matrix in the sink, T"is the tranfer matrix of error vector
+%                       L is the coding vector in error packets. y is the source message. Y is the received message in the sink.
+%                       the purpose is to see Z is how affected by the T'*T",and L. for clarity, we think T"*(Z-Ly) represents Z. this is reasonable because they are all random. you can see all the components is nonzero
+%                       assume it presents T"*(Z-Ly) which are random is konwn and random and to control ; it presents T"*(Z-Ly) which are random, to see how T'effect T'*T"*(Z-Ly)  .
+%                       depend on different size of field. it is mainly for non-coherent network,
+
+Q=[2,3,5,7,11,13,17,19,23,29,31];%这里只有素数域，2^m因为是在c语言里仿真的，所以这里没做，可以用vc做完，把数据拿到这儿画出来
+% Q=[2,3,5,7,11,13,17]
+Q=[5];
+
+for jj=1:10;%循环jj次，实验表明，需要做1000次才能比较平滑
+for z=1:length(Q);%length(Q)是考察多少个有限域
+
+cut=5*Q(z);%最大流对小割，这个值越大，最终扩散错误率越小，一般设置为2，5或者10
+
+
+%T=randint(m,m,[0,Q(z)-1]);%在有限域Q(z)里随机产生转移矩阵y=[0.6600    0.8463    0.9546    0.9747    0.9992    0.9909    0.9940    0.9967    0.9972    0.9984    0.9986    0.9989]
+T=myfullmatrix(cut,cut);%y=[1.0000    1.0000    1.0000    1.0000    0.9876    1.0000    1.0000    1.0000    1.0000    1.0000    1.0000    1.0000]此时满秩几乎总是扩散，
+                       %如果T不满秩还行，合理性只能如下解释，错误或者all问题，用一个纠错码结合信道编码，然后用(T*G)*s中的(T*G)对应的生成矩阵，此时T不满秩也能解出s
+% n=100; %信息在Q(z)的扩域(Q(z))^n里是一个m行向量，在Q(z)里对应一个m*n列的矩阵,这里n不适宜定为一个具体的数，因为1<n<m,而m会随着Q(z)变化，
+        %但这样设置效果不好，为了保证n值不会影响效果，也就是假设原始的T"*(Z-Ly)为原始错误，替代原始错误Z，重点关心转移矩阵，因为这里假设T"*(Z-Ly)和最大流最小割的维数相等，即cut*1
+        %所以也合理，哈哈,但是这样就观察不到第一次转移的情况，即Z到T"*(Z-Ly)的转移情况，不过可以假设极端情况T"*(Z-Ly)总是满秩或总是，为了方便观察，还是假设从Z开始，观察第一次第二次，Z
+        %开始有一个好处，就是可以更容易的观察原始错误Z的多少引起的变化情况。
+n=round(cut*1);%  原始错误的个数
+m=cut;%转移矩阵的行等于cut
+
+e0=randint(n,m,[0,Q(z)-1]);%代表(Z-Ly),也可以认为是原始错误Z，仿真情况下没必要明确Ly，Z在域[0,Q(z)^cut-1]里是一个一维向量，向量的长度代表了原始错误个数多少，由n来表征，这个向量
+                         %在域[0,Q(z)-1]里是一个矩阵，总之用e0代表原始错误Z。考虑矩阵运算，这里将其转置，好和Tzy相乘，这里n代表原始错误的多少，m代表所在域的大小
+Tzy=randint(m,n,[0,Q(z)-1]);%用Tzy表示错误转移矩阵T"，因为局部编码核在域[0,Q(z)-1]里，所以这里Tzy和e0都成为域[0,Q(z)-1]里的矩阵，本来e0是域[0,Q(z)^cut-1]的向量，这是正常的
+
+e1=mymul(Tzy,e0,Q(z));%表示第一次扩散后的错误，e1即T"*(Z-Ly)
+
+e2=mymul(T,e1,Q(z));%在 y=T'*Y - T'*T"*(Z-Ly)中T"*(Z-Ly)经过T'（T的逆）扩散之后的扩散错误,
+
+
+r= worank(e2,Q(z));                          
+ccc=r/m;%归一化的错误率,归一化错误率虽然降下来了，但是单次里有时的最终扩散错误率依然为1，此时可以用一个校验措施，10次里有7次能解出来，3次错误率为1时就放弃，依然可行,
+        %不过上面只是极端情况，就是有限域大小为2时，当最大流最小割较小时可能会出现等于1的情况，当cut变大之后，也几乎不等于1，这是这篇论文的核心，当有限域为4时，可能会出现扩散错误率为1.
+        %有限域大，扩散错误大，MRD降低的也大，反之亦然，取一个较好的平衡，综上，有限域大小为2或者3比较合适，因为首先要使扩散错误率不能为1，这样就彻底没办法了。当域变大以后，
+        %错误率扩散的厉害，但是最大流最小割变大会减缓扩散至1，不过这也是在域大小在5,7左右时有用，再大一点没有测试。
+
+v(jj,z)=ccc;%开辟出一个向量v，专门记录上述的错误率，jj是循环第jj次，z是对应第几个有限域
+
+end
+
+
+ end
+
+sum=0;
+for kk=1:size(v,1);%size(v,1)是v向量的每一列加起来，做平均，多次循环，使数据平滑
+  sum=sum+v(kk,:);  
+end
+v;
+y=sum/size(v,1)%归一错误率
+x=Q;
+
+plot(x,y,'--b','linewidth',2);
+axis([0,31,0.4,1.2]);
+set(gca,'xtick',[2,3,5,7,11,13,17,19,23,29,31])
+set(gca,'xticklabel',{'2','3','5','7','11','13','17','19','23','29','31'})
+xlabel('The size of field');
+ylabel('The normalized spread error rate in non-coherent network');
+
+set(gca,'FontName','Times New Roman','FontSize',11); 
+set(get(gca,'XLabel'),'FontName','Times New Roman','FontSize',11); % X轴的字号为9 pt
+set(get(gca,'YLabel'),'FontName','Times New Roman','FontSize',11); % Y轴的字号为9 pt
+set(get(gca,'Title'),'FontName','Times New Roman','FontSize',11); % Y轴的字号为9 pt

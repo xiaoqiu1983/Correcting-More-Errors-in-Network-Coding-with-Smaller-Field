@@ -1,0 +1,11 @@
+ The data in Table 1 in the paper comes from  xiaoqiu_rank_smallfield_verify2.m
+
+
+The data in Fiugre 1 in the paper comes from  xiaoqiu_rank_smallfield_1.m
+
+
+The data in Fiugre 2 in the paper comes from  xiaoqiu_rank_smallfield_3.m
+
+
+Else files referred to the functions which are called by xiaoqiu_rank_smallfield_1.m, xiaoqiu_rank_smallfield_3.m or xiaoqiu_rank_smallfield_verify2.m
+
